@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceForge - AI Voice Cloning Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: #6366f1;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(45deg, #ffffff, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: fadeInUp 1s ease;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            margin-bottom: 2rem;
+            opacity: 0.8;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 1s ease 0.4s both;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Voice Upload Section */
+        .voice-section {
+            padding: 6rem 0;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            background: linear-gradient(45deg, #ffffff, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .upload-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-area {
+            border: 2px dashed rgba(99, 102, 241, 0.5);
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+
+        .upload-area:hover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .upload-area.dragover {
+            border-color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .privacy-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .toggle-option {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-option.active {
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            border-color: transparent;
+        }
+
+        /* Voice Library */
+        .voice-library {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .voice-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .voice-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        /* TTS Demo Section */
+        .tts-demo {
+            padding: 6rem 0;
+        }
+
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .demo-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .voice-select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 0.75rem;
+            color: white;
+            font-size: 1rem;
+        }
+
+        .generate-btn {
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Features Grid */
+        .features {
+            padding: 6rem 0;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .feature-card {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .floating-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .floating-element {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .upload-container,
+            .demo-container {
+                padding: 2rem;
+            }
+        }
+
+        /* Loading states */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #6366f1;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav container">
+            <div class="logo">VoiceForge</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#upload">Upload</a></li>
+                <li><a href="#demo">Demo</a></li>
+                <li><a href="#features">Features</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home" class="hero">
+            <div class="floating-elements"></div>
+            <div class="container">
+                <div class="hero-content">
+                    <h1>The Future of Voice AI</h1>
+                    <p>Clone any voice with cutting-edge AI technology. Create realistic text-to-speech with just a few seconds of audio.</p>
+                    <a href="#upload" class="cta-button">Start Cloning Voices</a>
+                </div>
+            </div>
+        </section>
+
+        <section id="upload" class="voice-section">
+            <div class="container">
+                <h2 class="section-title">Upload & Clone Voices</h2>
+                <div class="upload-container">
+                    <div class="privacy-toggle">
+                        <div class="toggle-option active" data-privacy="private">
+                            <i class="fas fa-lock"></i> Private
+                        </div>
+                        <div class="toggle-option" data-privacy="public">
+                            <i class="fas fa-globe"></i> Public Library
+                        </div>
+                    </div>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #6366f1; margin-bottom: 1rem;"></i>
+                        <h3>Drop your audio file here</h3>
+                        <p>Or click to browse (WAV, MP3 supported)</p>
+                        <input type="file" id="audioUpload" accept=".wav,.mp3" style="display: none;">
+                    </div>
+
+                    <div id="uploadedAudio" style="display: none;">
+                        <audio controls style="width: 100%; margin-bottom: 1rem;"></audio>
+                        <input type="text" id="voiceName" placeholder="Enter voice name..." 
+                               style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; margin-bottom: 1rem;">
+                        <button id="saveVoice" class="generate-btn">Save Voice Clone</button>
+                    </div>
+                </div>
+
+                <div id="voiceLibrary" class="voice-library"></div>
+            </div>
+        </section>
+
+        <section id="demo" class="tts-demo">
+            <div class="container">
+                <h2 class="section-title">Try Text-to-Speech</h2>
+                <div class="demo-container">
+                    <textarea id="ttsText" class="demo-input" placeholder="Enter text to convert to speech...">Hello! This is a demonstration of our advanced voice cloning technology. Your voice can sound just like this with our AI-powered platform.</textarea>
+                    
+                    <div class="demo-controls">
+                        <select id="voiceSelect" class="voice-select">
+                            <option value="en-male">English Male</option>
+                            <option value="en-female">English Female</option>
+                            <option value="es-male">Spanish Male</option>
+                            <option value="fr-female">French Female</option>
+                        </select>
+                        <button id="generateSpeech" class="generate-btn">Generate Speech</button>
+                    </div>
+
+                    <div id="audioOutput" style="margin-top: 2rem; display: none;">
+                        <audio controls style="width: 100%;"></audio>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features">
+            <div class="container">
+                <h2 class="section-title">Powerful Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-microphone-alt feature-icon"></i>
+                        <h3>High-Quality Voice Cloning</h3>
+                        <p>Upload just 10 seconds of audio to create a realistic voice clone using advanced AI algorithms.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-globe feature-icon"></i>
+                        <h3>Multilingual Support</h3>
+                        <p>Generate speech in over 20 languages with natural intonation and pronunciation.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-code feature-icon"></i>
+                        <h3>Developer API</h3>
+                        <p>Integrate voice cloning into your applications with our robust and scalable API.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-shield-alt feature-icon"></i>
+                        <h3>Privacy Focused</h3>
+                        <p>Keep your voice data private or share it publicly. Full control over your voice models.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-bolt feature-icon"></i>
+                        <h3>Real-time Generation</h3>
+                        <p>Generate speech in real-time with ultra-low latency for live applications.</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-sliders-h feature-icon"></i>
+                        <h3>Fine-tuned Control</h3>
+                        <p>Adjust speed, emotion, and emphasis to create the perfect voice for your needs.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Initialize WebsimSocket for database functionality
+        const room = new WebsimSocket();
+        
+        let currentPrivacyMode = 'private';
+        let uploadedVoices = JSON.parse(localStorage.getItem('privateVoices') || '[]');
+
+        // Floating animation elements
+        function createFloatingElements() {
+            const container = document.querySelector('.floating-elements');
+            for (let i = 0; i < 20; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-element';
+                element.style.left = Math.random() * 100 + '%';
+                element.style.top = Math.random() * 100 + '%';
+                element.style.animationDelay = Math.random() * 6 + 's';
+                container.appendChild(element);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            createFloatingElements();
+            loadVoiceLibrary();
+            populateVoiceSelect();
+        });
+
+        // Privacy toggle
+        document.querySelectorAll('.toggle-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                currentPrivacyMode = this.dataset.privacy;
+                loadVoiceLibrary();
+            });
+        });
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const audioUpload = document.getElementById('audioUpload');
+        const uploadedAudio = document.getElementById('uploadedAudio');
+
+        uploadArea.addEventListener('click', () => audioUpload.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+
+        audioUpload.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        async function handleFileUpload(file) {
+            if (!file.type.startsWith('audio/')) {
+                alert('Please upload an audio file (WAV or MP3)');
+                return;
+            }
+
+            const audioElement = uploadedAudio.querySelector('audio');
+            const url = URL.createObjectURL(file);
+            audioElement.src = url;
+            
+            // Store file for later upload
+            uploadedAudio.dataset.file = url;
+            uploadedAudio.dataset.fileName = file.name;
+            uploadedAudio.style.display = 'block';
+        }
+
+        // Save voice clone
+        document.getElementById('saveVoice').addEventListener('click', async function() {
+            const voiceName = document.getElementById('voiceName').value.trim();
+            if (!voiceName) {
+                alert('Please enter a voice name');
+                return;
+            }
+
+            const audioElement = uploadedAudio.querySelector('audio');
+            const file = audioUpload.files[0];
+            
+            if (!file) {
+                alert('No audio file selected');
+                return;
+            }
+
+            this.classList.add('loading');
+            this.innerHTML = 'Saving... <div class="spinner"></div>';
+
+            try {
+                let voiceData = {
+                    name: voiceName,
+                    created_at: new Date().toISOString()
+                };
+
+                if (currentPrivacyMode === 'public') {
+                    // Upload to public storage
+                    const audioUrl = await websim.upload(file);
+                    voiceData.audio_url = audioUrl;
+                    
+                    await room.collection('voice_clone').create(voiceData);
+                    alert('Voice clone saved to public library!');
+                } else {
+                    // Save to localStorage for private voices
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        voiceData.audio_data = e.target.result;
+                        uploadedVoices.push(voiceData);
+                        localStorage.setItem('privateVoices', JSON.stringify(uploadedVoices));
+                        alert('Voice clone saved privately!');
+                        loadVoiceLibrary();
+                    };
+                    reader.readAsDataURL(file);
+                }
+
+                // Reset form
+                document.getElementById('voiceName').value = '';
+                uploadedAudio.style.display = 'none';
+                audioUpload.value = '';
+                
+                loadVoiceLibrary();
+                populateVoiceSelect();
+
+            } catch (error) {
+                console.error('Error saving voice:', error);
+                alert('Error saving voice clone. Please try again.');
+            } finally {
+                this.classList.remove('loading');
+                this.innerHTML = 'Save Voice Clone';
+            }
+        });
+
+        // Load voice library
+        async function loadVoiceLibrary() {
+            const libraryContainer = document.getElementById('voiceLibrary');
+            libraryContainer.innerHTML = '';
+
+            let voices = [];
+            
+            if (currentPrivacyMode === 'private') {
+                voices = uploadedVoices;
+            } else {
+                voices = room.collection('voice_clone').getList();
+            }
+
+            if (voices.length === 0) {
+                libraryContainer.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; opacity: 0.6;">
+                        <i class="fas fa-microphone-slash" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <h3>No voices in ${currentPrivacyMode} library</h3>
+                        <p>Upload your first voice to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            voices.forEach(voice => {
+                const voiceCard = document.createElement('div');
+                voiceCard.className = 'voice-card';
+                voiceCard.innerHTML = `
+                    <h4>${voice.name}</h4>
+                    <p style="opacity: 0.7; margin-bottom: 1rem;">
+                        ${currentPrivacyMode === 'public' ? `by ${voice.username}` : 'Private voice'} • 
+                        ${new Date(voice.created_at).toLocaleDateString()}
+                    </p>
+                    <audio controls style="width: 100%; margin-bottom: 1rem;" 
+                           src="${voice.audio_url || voice.audio_data}"></audio>
+                    <button class="generate-btn" onclick="useVoiceForTTS('${voice.audio_url || voice.audio_data}')">
+                        Use for TTS
+                    </button>
+                `;
+                libraryContainer.appendChild(voiceCard);
+            });
+        }
+
+        // Subscribe to public voice updates
+        room.collection('voice_clone').subscribe(function(voices) {
+            if (currentPrivacyMode === 'public') {
+                loadVoiceLibrary();
+                populateVoiceSelect();
+            }
+        });
+
+        // Populate voice select dropdown
+        async function populateVoiceSelect() {
+            const select = document.getElementById('voiceSelect');
+            const currentValue = select.value;
+            
+            // Clear existing custom options
+            const options = select.querySelectorAll('option[data-custom]');
+            options.forEach(option => option.remove());
+
+            // Add private voices
+            uploadedVoices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = `custom_private_${index}`;
+                option.textContent = `${voice.name} (Private)`;
+                option.dataset.custom = 'true';
+                option.dataset.audioSrc = voice.audio_data;
+                select.appendChild(option);
+            });
+
+            // Add public voices
+            const publicVoices = room.collection('voice_clone').getList();
+            publicVoices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = `custom_public_${voice.id}`;
+                option.textContent = `${voice.name} (${voice.username})`;
+                option.dataset.custom = 'true';
+                option.dataset.audioSrc = voice.audio_url;
+                select.appendChild(option);
+            });
+
+            // Restore previous selection if it still exists
+            if (select.querySelector(`option[value="${currentValue}"]`)) {
+                select.value = currentValue;
+            }
+        }
+
+        // TTS Generation
+        document.getElementById('generateSpeech').addEventListener('click', async function() {
+            const text = document.getElementById('ttsText').value.trim();
+            const voice = document.getElementById('voiceSelect').value;
+            
+            if (!text) {
+                alert('Please enter some text to convert');
+                return;
+            }
+
+            this.classList.add('loading');
+            this.innerHTML = 'Generating... <div class="spinner"></div>';
+
+            try {
+                let result;
+                const selectedOption = document.querySelector(`option[value="${voice}"]`);
+                
+                if (selectedOption && selectedOption.dataset.custom) {
+                    // Use custom voice
+                    result = await websim.textToSpeech({
+                        text: text,
+                        voice_sample: selectedOption.dataset.audioSrc
+                    });
+                } else {
+                    // Use built-in voice
+                    result = await websim.textToSpeech({
+                        text: text,
+                        voice: voice
+                    });
+                }
+
+                const audioOutput = document.getElementById('audioOutput');
+                const audioElement = audioOutput.querySelector('audio');
+                audioElement.src = result.url;
+                audioOutput.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error generating speech:', error);
+                alert('Error generating speech. Please try again.');
+            } finally {
+                this.classList.remove('loading');
+                this.innerHTML = 'Generate Speech';
+            }
+        });
+
+        // Function to use voice for TTS (called from voice cards)
+        function useVoiceForTTS(audioSrc) {
+            const select = document.getElementById('voiceSelect');
+            const option = select.querySelector(`option[data-audio-src="${audioSrc}"]`);
+            if (option) {
+                select.value = option.value;
+                document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Smooth scrolling for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
