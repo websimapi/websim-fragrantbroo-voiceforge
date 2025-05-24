@@ -659,12 +659,20 @@
 
             try {
                 if (isPrivate) {
-                    // Remove from localStorage
-                    uploadedVoices = uploadedVoices.filter((_, index) => index !== parseInt(voiceId));
+                    // Handle different voiceId formats for private voices
+                    if (voiceId.startsWith('private_')) {
+                        // Extract index from private_${index} format
+                        const index = parseInt(voiceId.split('_')[1]);
+                        uploadedVoices.splice(index, 1);
+                    } else {
+                        // Find by ID
+                        uploadedVoices = uploadedVoices.filter(voice => voice.id !== voiceId);
+                    }
                     localStorage.setItem('privateVoices', JSON.stringify(uploadedVoices));
                 } else {
-                    // Remove from database
-                    await room.collection('voice_clone').delete(voiceId);
+                    // Handle public voice deletion - extract actual ID from public_${id} format
+                    const actualId = voiceId.startsWith('public_') ? voiceId.replace('public_', '') : voiceId;
+                    await room.collection('voice_clone').delete(actualId);
                 }
                 
                 loadVoiceLibrary();
