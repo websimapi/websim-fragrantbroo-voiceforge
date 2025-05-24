@@ -604,6 +604,7 @@
                 const uniqueFilename = `${timestamp}_${voiceName.replace(/[^a-zA-Z0-9]/g, '_')}`;
                 
                 let voiceData = {
+                    id: `${timestamp}_${Math.random().toString(36).substr(2, 9)}`,
                     name: voiceName,
                     filename: uniqueFilename,
                     created_at: new Date().toISOString()
@@ -621,6 +622,10 @@
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         voiceData.audio_data = e.target.result;
+                        // Ensure unique ID for private voices if not already set
+                        if (!voiceData.id) {
+                            voiceData.id = `private_${timestamp}_${Math.random().toString(36).substr(2, 9)}`;
+                        }
                         uploadedVoices.push(voiceData);
                         localStorage.setItem('privateVoices', JSON.stringify(uploadedVoices));
                         alert('Voice clone saved privately!');
@@ -698,7 +703,7 @@
             voices.forEach((voice, index) => {
                 const voiceCard = document.createElement('div');
                 voiceCard.className = 'voice-card';
-                const voiceId = currentPrivacyMode === 'private' ? index : voice.id;
+                const voiceId = currentPrivacyMode === 'private' ? voice.id || `private_${index}` : `public_${voice.id}`;
                 voiceCard.innerHTML = `
                     <h4>${voice.name}</h4>
                     <p style="opacity: 0.7; margin-bottom: 1rem;">
@@ -708,7 +713,7 @@
                     <audio controls style="width: 100%; margin-bottom: 1rem;" 
                            src="${voice.audio_url || voice.audio_data}"></audio>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button class="generate-btn" onclick="useVoiceForTTS('${voice.audio_url || voice.audio_data}')" style="flex: 1;">
+                        <button class="generate-btn" onclick="useVoiceForTTS('${voiceId}')" style="flex: 1;">
                             Use for TTS
                         </button>
                         <button class="generate-btn" onclick="deleteVoice('${voiceId}', ${currentPrivacyMode === 'private'})" 
@@ -741,10 +746,12 @@
             // Add private voices
             uploadedVoices.forEach((voice, index) => {
                 const option = document.createElement('option');
-                option.value = `custom_private_${index}`;
+                const voiceId = voice.id || `private_${index}`;
+                option.value = `custom_private_${voiceId}`;
                 option.textContent = `${voice.name} (Private)`;
                 option.dataset.custom = 'true';
                 option.dataset.audioSrc = voice.audio_data;
+                option.dataset.voiceId = voiceId;
                 select.appendChild(option);
             });
 
@@ -752,10 +759,12 @@
             const publicVoices = room.collection('voice_clone').getList();
             publicVoices.forEach((voice, index) => {
                 const option = document.createElement('option');
+                const voiceId = `public_${voice.id}`;
                 option.value = `custom_public_${voice.id}`;
                 option.textContent = `${voice.name} (${voice.username})`;
                 option.dataset.custom = 'true';
                 option.dataset.audioSrc = voice.audio_url;
+                option.dataset.voiceId = voiceId;
                 select.appendChild(option);
             });
 
@@ -811,9 +820,9 @@
         });
 
         // Function to use voice for TTS (called from voice cards)
-        function useVoiceForTTS(audioSrc) {
+        function useVoiceForTTS(voiceId) {
             const select = document.getElementById('voiceSelect');
-            const option = select.querySelector(`option[data-audio-src="${audioSrc}"]`);
+            const option = select.querySelector(`option[data-voice-id="${voiceId}"]`);
             if (option) {
                 select.value = option.value;
                 document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
