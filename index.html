@@ -599,8 +599,13 @@
             this.innerHTML = 'Saving... <div class="spinner"></div>';
 
             try {
+                // Create unique filename with timestamp
+                const timestamp = new Date().getTime();
+                const uniqueFilename = `${timestamp}_${voiceName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                
                 let voiceData = {
                     name: voiceName,
+                    filename: uniqueFilename,
                     created_at: new Date().toISOString()
                 };
 
@@ -641,6 +646,31 @@
             }
         });
 
+        // Delete voice function
+        async function deleteVoice(voiceId, isPrivate) {
+            if (!confirm('Are you sure you want to delete this voice?')) {
+                return;
+            }
+
+            try {
+                if (isPrivate) {
+                    // Remove from localStorage
+                    uploadedVoices = uploadedVoices.filter((_, index) => index !== parseInt(voiceId));
+                    localStorage.setItem('privateVoices', JSON.stringify(uploadedVoices));
+                } else {
+                    // Remove from database
+                    await room.collection('voice_clone').delete(voiceId);
+                }
+                
+                loadVoiceLibrary();
+                populateVoiceSelect();
+                alert('Voice deleted successfully!');
+            } catch (error) {
+                console.error('Error deleting voice:', error);
+                alert('Error deleting voice. Please try again.');
+            }
+        }
+
         // Load voice library
         async function loadVoiceLibrary() {
             const libraryContainer = document.getElementById('voiceLibrary');
@@ -665,9 +695,10 @@
                 return;
             }
 
-            voices.forEach(voice => {
+            voices.forEach((voice, index) => {
                 const voiceCard = document.createElement('div');
                 voiceCard.className = 'voice-card';
+                const voiceId = currentPrivacyMode === 'private' ? index : voice.id;
                 voiceCard.innerHTML = `
                     <h4>${voice.name}</h4>
                     <p style="opacity: 0.7; margin-bottom: 1rem;">
@@ -676,9 +707,15 @@
                     </p>
                     <audio controls style="width: 100%; margin-bottom: 1rem;" 
                            src="${voice.audio_url || voice.audio_data}"></audio>
-                    <button class="generate-btn" onclick="useVoiceForTTS('${voice.audio_url || voice.audio_data}')">
-                        Use for TTS
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="generate-btn" onclick="useVoiceForTTS('${voice.audio_url || voice.audio_data}')" style="flex: 1;">
+                            Use for TTS
+                        </button>
+                        <button class="generate-btn" onclick="deleteVoice('${voiceId}', ${currentPrivacyMode === 'private'})" 
+                                style="background: linear-gradient(45deg, #ef4444, #dc2626); flex: 0 0 auto; padding: 0.75rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 `;
                 libraryContainer.appendChild(voiceCard);
             });
