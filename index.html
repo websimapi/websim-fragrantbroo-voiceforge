@@ -238,13 +238,60 @@
             flex-wrap: wrap;
         }
 
-        .voice-select {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .voice-search-container {
+            position: relative;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 10px;
             padding: 0.75rem;
             color: white;
             font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .voice-search-input {
+            background: transparent;
+            border: none;
+            color: white;
+            width: 100%;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        .voice-search-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .voice-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .voice-option {
+            padding: 0.75rem;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: background 0.2s ease;
+        }
+
+        .voice-option:hover,
+        .voice-option.highlighted {
+            background: rgba(99, 102, 241, 0.3);
+        }
+
+        .voice-option:last-child {
+            border-bottom: none;
         }
 
         .generate-btn {
@@ -443,12 +490,14 @@
                     <textarea id="ttsText" class="demo-input" placeholder="Enter text to convert to speech...">Hello! This is a demonstration of our advanced voice cloning technology. Your voice can sound just like this with our AI-powered platform.</textarea>
                     
                     <div class="demo-controls">
-                        <select id="voiceSelect" class="voice-select">
-                            <option value="en-male">English Male</option>
-                            <option value="en-female">English Female</option>
-                            <option value="es-male">Spanish Male</option>
-                            <option value="fr-female">French Female</option>
-                        </select>
+                        <div class="voice-search-container" id="voiceSearchContainer">
+                            <input type="text" 
+                                   id="voiceSearchInput" 
+                                   class="voice-search-input" 
+                                   placeholder="Search voices..." 
+                                   readonly>
+                            <div class="voice-dropdown" id="voiceDropdown"></div>
+                        </div>
                         <button id="generateSpeech" class="generate-btn">Generate Speech</button>
                     </div>
 
@@ -505,6 +554,9 @@
         let currentPrivacyMode = 'private';
         let uploadedVoices = JSON.parse(localStorage.getItem('privateVoices') || '[]');
 
+        let selectedVoiceData = { value: 'en-male', text: 'English Male' };
+        let voiceOptions = [];
+
         // Floating animation elements
         function createFloatingElements() {
             const container = document.querySelector('.floating-elements');
@@ -523,6 +575,7 @@
             createFloatingElements();
             loadVoiceLibrary();
             populateVoiceSelect();
+            initializeVoiceSearch();
         });
 
         // Privacy toggle
@@ -742,50 +795,138 @@
             }
         });
 
-        // Populate voice select dropdown
+        // Initialize voice search dropdown
+        function initializeVoiceSearch() {
+            const container = document.getElementById('voiceSearchContainer');
+            const input = document.getElementById('voiceSearchInput');
+            const dropdown = document.getElementById('voiceDropdown');
+
+            // Set initial value
+            input.value = selectedVoiceData.text;
+
+            // Toggle dropdown
+            container.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (dropdown.style.display === 'block') {
+                    dropdown.style.display = 'none';
+                    input.readOnly = true;
+                } else {
+                    dropdown.style.display = 'block';
+                    input.readOnly = false;
+                    input.focus();
+                    renderVoiceOptions();
+                }
+            });
+
+            // Filter options while typing
+            input.addEventListener('input', function() {
+                renderVoiceOptions(input.value);
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                dropdown.style.display = 'none';
+                input.readOnly = true;
+                input.value = selectedVoiceData.text;
+            });
+
+            // Handle keyboard navigation
+            input.addEventListener('keydown', function(e) {
+                const options = dropdown.querySelectorAll('.voice-option');
+                const highlighted = dropdown.querySelector('.voice-option.highlighted');
+                let index = Array.from(options).indexOf(highlighted);
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (highlighted) highlighted.classList.remove('highlighted');
+                    index = index < options.length - 1 ? index + 1 : 0;
+                    options[index]?.classList.add('highlighted');
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (highlighted) highlighted.classList.remove('highlighted');
+                    index = index > 0 ? index - 1 : options.length - 1;
+                    options[index]?.classList.add('highlighted');
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (highlighted) {
+                        selectVoice(highlighted.dataset.value, highlighted.textContent, highlighted.dataset);
+                    }
+                }
+            });
+        }
+
+        function renderVoiceOptions(filter = '') {
+            const dropdown = document.getElementById('voiceDropdown');
+            const filteredOptions = voiceOptions.filter(option => 
+                option.text.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            dropdown.innerHTML = filteredOptions.map(option => `
+                <div class="voice-option" 
+                     data-value="${option.value}" 
+                     data-custom="${option.custom || ''}"
+                     data-audio-src="${option.audioSrc || ''}"
+                     data-voice-id="${option.voiceId || ''}">
+                    ${option.text}
+                </div>
+            `).join('');
+
+            // Add click handlers
+            dropdown.querySelectorAll('.voice-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    selectVoice(this.dataset.value, this.textContent, this.dataset);
+                });
+            });
+        }
+
+        function selectVoice(value, text, dataset) {
+            selectedVoiceData = { value, text, ...dataset };
+            document.getElementById('voiceSearchInput').value = text;
+            document.getElementById('voiceDropdown').style.display = 'none';
+            document.getElementById('voiceSearchInput').readOnly = true;
+        }
+
+        // Populate voice options
         async function populateVoiceSelect() {
-            const select = document.getElementById('voiceSelect');
-            const currentValue = select.value;
-            
-            // Clear existing custom options
-            const options = select.querySelectorAll('option[data-custom]');
-            options.forEach(option => option.remove());
+            voiceOptions = [
+                { value: 'en-male', text: 'English Male' },
+                { value: 'en-female', text: 'English Female' },
+                { value: 'es-male', text: 'Spanish Male' },
+                { value: 'fr-female', text: 'French Female' }
+            ];
 
             // Add private voices
             uploadedVoices.forEach((voice, index) => {
-                const option = document.createElement('option');
                 const voiceId = voice.id || `private_${index}`;
-                option.value = `custom_private_${voiceId}`;
-                option.textContent = `${voice.name} (Private)`;
-                option.dataset.custom = 'true';
-                option.dataset.audioSrc = voice.audio_data;
-                option.dataset.voiceId = voiceId;
-                select.appendChild(option);
+                voiceOptions.push({
+                    value: `custom_private_${voiceId}`,
+                    text: `${voice.name} (Private)`,
+                    custom: 'true',
+                    audioSrc: voice.audio_data,
+                    voiceId: voiceId
+                });
             });
 
             // Add public voices
             const publicVoices = room.collection('voice_clone').getList();
-            publicVoices.forEach((voice, index) => {
-                const option = document.createElement('option');
+            publicVoices.forEach((voice) => {
                 const voiceId = `public_${voice.id}`;
-                option.value = `custom_public_${voice.id}`;
-                option.textContent = `${voice.name} (${voice.username})`;
-                option.dataset.custom = 'true';
-                option.dataset.audioSrc = voice.audio_url;
-                option.dataset.voiceId = voiceId;
-                select.appendChild(option);
+                voiceOptions.push({
+                    value: `custom_public_${voice.id}`,
+                    text: `${voice.name} (${voice.username})`,
+                    custom: 'true',
+                    audioSrc: voice.audio_url,
+                    voiceId: voiceId
+                });
             });
 
-            // Restore previous selection if it still exists
-            if (select.querySelector(`option[value="${currentValue}"]`)) {
-                select.value = currentValue;
-            }
+            renderVoiceOptions();
         }
 
         // TTS Generation
         document.getElementById('generateSpeech').addEventListener('click', async function() {
             const text = document.getElementById('ttsText').value.trim();
-            const voice = document.getElementById('voiceSelect').value;
+            const voiceData = selectedVoiceData;
             
             if (!text) {
                 alert('Please enter some text to convert');
@@ -797,19 +938,18 @@
 
             try {
                 let result;
-                const selectedOption = document.querySelector(`option[value="${voice}"]`);
                 
-                if (selectedOption && selectedOption.dataset.custom) {
+                if (voiceData.custom) {
                     // Use custom voice
                     result = await websim.textToSpeech({
                         text: text,
-                        voice_sample: selectedOption.dataset.audioSrc
+                        voice_sample: voiceData.audioSrc
                     });
                 } else {
                     // Use built-in voice
                     result = await websim.textToSpeech({
                         text: text,
-                        voice: voice
+                        voice: voiceData.value
                     });
                 }
 
@@ -829,10 +969,9 @@
 
         // Function to use voice for TTS (called from voice cards)
         function useVoiceForTTS(voiceId) {
-            const select = document.getElementById('voiceSelect');
-            const option = select.querySelector(`option[data-voice-id="${voiceId}"]`);
-            if (option) {
-                select.value = option.value;
+            const voice = voiceOptions.find(option => option.voiceId === voiceId);
+            if (voice) {
+                selectVoice(voice.value, voice.text, voice);
                 document.getElementById('demo').scrollIntoView({ behavior: 'smooth' });
             }
         }
