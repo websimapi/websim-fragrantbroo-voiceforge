@@ -585,6 +585,7 @@
                 this.classList.add('active');
                 currentPrivacyMode = this.dataset.privacy;
                 loadVoiceLibrary();
+                populateVoiceSelect();
             });
         });
 
@@ -738,19 +739,19 @@
         }
 
         // Load voice library
-        async function loadVoiceLibrary() {
+        async function loadVoiceLibrary(updatedPublicVoices = null) {
             const libraryContainer = document.getElementById('voiceLibrary');
             libraryContainer.innerHTML = '';
 
-            let voices = [];
+            let voicesToDisplay = [];
             
             if (currentPrivacyMode === 'private') {
-                voices = uploadedVoices;
-            } else {
-                voices = room.collection('voice_clone').getList();
+                voicesToDisplay = uploadedVoices;
+            } else { // Public mode
+                voicesToDisplay = updatedPublicVoices !== null ? updatedPublicVoices : room.collection('voice_clone').getList();
             }
 
-            if (voices.length === 0) {
+            if (voicesToDisplay.length === 0) {
                 libraryContainer.innerHTML = `
                     <div style="text-align: center; padding: 2rem; opacity: 0.6;">
                         <i class="fas fa-microphone-slash" style="font-size: 3rem; margin-bottom: 1rem;"></i>
@@ -761,23 +762,30 @@
                 return;
             }
 
-            voices.forEach((voice, index) => {
+            voicesToDisplay.forEach((voice, index) => {
                 const voiceCard = document.createElement('div');
                 voiceCard.className = 'voice-card';
-                const voiceId = currentPrivacyMode === 'private' ? voice.id || `private_${index}` : `public_${voice.id}`;
+                // Determine the correct ID for private vs public voices for various functions
+                let cardVoiceId;
+                if (currentPrivacyMode === 'private') {
+                    cardVoiceId = voice.id || `private_${index}`; // Use existing ID or generate one based on index
+                } else { // Public voice
+                    cardVoiceId = `public_${voice.id}`;
+                }
+                
                 voiceCard.innerHTML = `
                     <h4>${voice.name}</h4>
                     <p style="opacity: 0.7; margin-bottom: 1rem;">
-                        ${currentPrivacyMode === 'public' ? `by ${voice.username}` : 'Private voice'} • 
+                        ${currentPrivacyMode === 'public' ? `by ${voice.username || 'User'}` : 'Private voice'} • 
                         ${new Date(voice.created_at).toLocaleDateString()}
                     </p>
                     <audio controls style="width: 100%; margin-bottom: 1rem;" 
                            src="${voice.audio_url || voice.audio_data}"></audio>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button class="generate-btn" onclick="useVoiceForTTS('${voiceId}')" style="flex: 1;">
+                        <button class="generate-btn" onclick="useVoiceForTTS('${cardVoiceId}')" style="flex: 1;">
                             Use for TTS
                         </button>
-                        <button class="generate-btn" onclick="deleteVoice('${voiceId}', ${currentPrivacyMode === 'private'})" 
+                        <button class="generate-btn" onclick="deleteVoice('${cardVoiceId}', ${currentPrivacyMode === 'private'})" 
                                 style="background: linear-gradient(45deg, #ef4444, #dc2626); flex: 0 0 auto; padding: 0.75rem;">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -788,10 +796,13 @@
         }
 
         // Subscribe to public voice updates
-        room.collection('voice_clone').subscribe(function(voices) {
+        room.collection('voice_clone').subscribe(function(newPublicVoices) {
+            // Always update the global voiceOptions list with the latest public voices
+            populateVoiceSelect(newPublicVoices);
+            
+            // Only refresh the visible library if the user is currently viewing public voices
             if (currentPrivacyMode === 'public') {
-                loadVoiceLibrary();
-                populateVoiceSelect();
+                loadVoiceLibrary(newPublicVoices);
             }
         });
 
@@ -887,7 +898,7 @@
         }
 
         // Populate voice options
-        async function populateVoiceSelect() {
+        async function populateVoiceSelect(updatedPublicVoices = null) {
             voiceOptions = [
                 { value: 'en-male', text: 'English Male' },
                 { value: 'en-female', text: 'English Female' },
@@ -897,30 +908,44 @@
 
             // Add private voices
             uploadedVoices.forEach((voice, index) => {
-                const voiceId = voice.id || `private_${index}`;
+                const voiceId = voice.id || `private_${index}`; // Consistent ID generation
                 voiceOptions.push({
                     value: `custom_private_${voiceId}`,
                     text: `${voice.name} (Private)`,
                     custom: 'true',
                     audioSrc: voice.audio_data,
-                    voiceId: voiceId
+                    voiceId: voiceId // Store the original private voice ID
                 });
             });
 
             // Add public voices
-            const publicVoices = room.collection('voice_clone').getList();
-            publicVoices.forEach((voice) => {
-                const voiceId = `public_${voice.id}`;
+            const publicVoicesData = updatedPublicVoices !== null ? updatedPublicVoices : room.collection('voice_clone').getList();
+            publicVoicesData.forEach((voice) => {
+                const voiceId = `public_${voice.id}`; // Consistent ID generation for public
                 voiceOptions.push({
                     value: `custom_public_${voice.id}`,
-                    text: `${voice.name} (${voice.username})`,
+                    text: `${voice.name} (${voice.username || 'Public Voice'})`, // Fallback for username
                     custom: 'true',
                     audioSrc: voice.audio_url,
-                    voiceId: voiceId
+                    voiceId: voiceId // Store the 'public_' prefixed ID
                 });
             });
 
-            renderVoiceOptions();
+            renderVoiceOptions(); // Re-render dropdown options if it's open or to reflect changes
+            // If a voice is currently selected, ensure its text in the input is still correct
+            // or reset to default if the selected voice was deleted.
+            const currentSelectedVoiceStillExists = voiceOptions.some(opt => opt.value === selectedVoiceData.value);
+            if (currentSelectedVoiceStillExists) {
+                 // If current selection is still valid, ensure input text reflects it (in case text changed, e.g. username)
+                 const updatedSelectedOption = voiceOptions.find(opt => opt.value === selectedVoiceData.value);
+                 if (updatedSelectedOption) selectVoice(updatedSelectedOption.value, updatedSelectedOption.text, updatedSelectedOption);
+            } else if (voiceOptions.length > 0) {
+                 // If selected voice was deleted, select the first available option as default
+                 selectVoice(voiceOptions[0].value, voiceOptions[0].text, voiceOptions[0]);
+            } else {
+                 // Fallback if no voices are available at all (e.g. after deleting the last one)
+                 selectVoice('en-male', 'English Male', { value: 'en-male', text: 'English Male' });
+            }
         }
 
         // TTS Generation
